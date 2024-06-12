@@ -3,6 +3,7 @@
 from asyncio import create_subprocess_exec, sleep, run
 from requests import get
 from json import loads, dumps
+from random import randint
 
 
 def configer(domain):
@@ -31,9 +32,9 @@ async def main():
     domains = open("./domains.csv", "rt").read().split("\n")
     result = open("./result", "at")
 
-    for d in domains:
+    for _ in range(50):
         # generate config file
-        domain = d.strip()
+        domain = domains[randint(0,len(domains))].strip()
         configer(domain)
 
         # run xray with config
