@@ -33,11 +33,11 @@ async def main():
 
         try:
             req = get(
-                "http://cp.cloudflare.com/",
+                "https://www.google.com/generate_204",
                 proxies={"http": "http://127.0.0.1:10809"},
                 timeout=3,
             )
-            if req.status_code == 204:
+            if req.status_code == 204 or req.status_code == 200:
                 latency = req.elapsed.microseconds
                 result.write(f"{domain}\t{latency/1000}\n")
                 print(f"{domain}\t{latency/1000}")
