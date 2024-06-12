@@ -16,12 +16,15 @@ def configer(domain):
 
 
 async def main():
-    domains = open("./domains.csv", "rt").read().split("\n")
+    domains = open("./domains.txt", "rt").read().split("\n")
     result = open("./result", "at")
 
     for _ in range(50):
         # generate config file
-        domain = domains[randint(0,len(domains))].strip()
+        try:
+            domain = domains[randint(0,len(domains))].strip()
+        except: # noqa: E722
+            continue
         configer(domain)
 
         # run xray with config

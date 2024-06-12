@@ -6,7 +6,6 @@ from json import loads, dumps
 from random import randint
 from os.path import isfile
 
-
 def jitter_f():
     latencies = []
 
@@ -33,33 +32,35 @@ def jitter_f():
     return int(zigma / len(latencies))
 
 
-def configer(domain):
+def configer(ip):
     main_config = loads(open("./main.json", "rt").read())
 
     # set domain
     for vnex in main_config["outbounds"][0]["settings"]["vnext"]:
-        vnex["address"] = domain
+        vnex["address"] = ip
 
     open("./config.json", "wt").write(dumps(main_config))
 
 
 async def main():
     calc_jitter = True
-    domains = open("./domains.txt", "rt").read().split("\n")
+    count = 50
 
+    domains = open("./ipv4.txt", "rt").read().split("\n")
+    
     if isfile("./result.csv"):
         result = open("./result.csv", "at")
     else:
         result = open("./result.csv", "at")
-        result.write("Domain,Delay,Jitter\r")
+        result.write("IP,Delay,Jitter\r")
 
-    for _ in range(50):
+    for _ in range(count):
         # generate config file
         try:
-            domain = domains[randint(0, len(domains))].strip()
+            ip = domains[randint(0, len(domains))].strip().replace("0/24", str(randint(0,255)))
         except: # noqa: E722
             continue
-        configer(domain)
+        configer(ip)
 
         # run xray with config
         xray = await create_subprocess_exec("./xray.exe")
@@ -77,11 +78,11 @@ async def main():
                     if jitter == 0.0:
                         jitter = "JAMMED"
                 latency = req.elapsed.microseconds
-                result.write(f"{domain},{int(latency/1000)},{jitter}\n")
-                print(f"{domain},{int(latency/1000)},{jitter}")
+                result.write(f"{ip},{int(latency/1000)},{jitter}\n")
+                print(f"{ip},{int(latency/1000)},{jitter}")
         except:  # noqa: E722
-            result.write(f"{domain},Timeout\n")
-            print(f"{domain},Timeout\n")
+            result.write(f"{ip},Timeout\n")
+            print(f"{ip},Timeout\n")
 
         # kill the xray
         xray.terminate()
