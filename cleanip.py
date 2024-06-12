@@ -1,22 +1,17 @@
 # run -c config
 
 from asyncio import create_subprocess_exec, sleep, run
-from requests import get
 from json import loads, dumps
 from random import randint
 from os.path import isfile
-
+from httpx import Client
 
 def jitter_f():
     latencies = []
-
     for _ in range(5):
         try:
-            resp = get(
-                "https://www.google.com/generate_204",
-                proxies={"http": "http://127.0.0.1:10809"},
-                timeout=3,
-            )
+            client = Client(proxy='socks5://127.0.0.1:10808')
+            resp = client.get(url="https://www.google.com/generate_204")
             latencies.append(resp.elapsed.microseconds / 1000)
         except:  # noqa: E722
             return 0.0
@@ -65,11 +60,9 @@ async def main():
         xray = await create_subprocess_exec("./xray.exe")
 
         try:
-            req = get(
-                "https://www.google.com/generate_204",
-                proxies={"http": "http://127.0.0.1:10809"},
-                timeout=3,
-            )
+            # httpx client using proxy to xray socks
+            client = Client(proxy='socks5://127.0.0.1:10808')
+            req = client.get(url="https://www.google.com/generate_204")
             if req.status_code == 204 or req.status_code == 200:
                 jitter = ""
                 if calc_jitter:

@@ -1,10 +1,9 @@
 # run -c config
 
 from asyncio import create_subprocess_exec, sleep, run
-from requests import get
 from json import loads, dumps
 from random import randint
-
+from httpx import Client
 
 def configer(domain):
     main_config = loads(open("./main.json", "rt").read())
@@ -40,11 +39,9 @@ async def main():
         xray = await create_subprocess_exec("./xray.exe")
 
         try:
-            req = get(
-                "https://www.google.com/generate_204",
-                proxies={"http": "http://127.0.0.1:10809"},
-                timeout=3,
-            )
+            # httpx client using proxy to xray socks
+            client = Client(proxy='socks5://127.0.0.1:10808')
+            req = client.get(url="https://www.google.com/generate_204")
             if req.status_code == 204 or req.status_code == 200:
                 latency = req.elapsed.microseconds
                 result.write(f"{domain}\t{latency/1000}\n")
