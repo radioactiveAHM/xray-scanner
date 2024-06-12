@@ -7,14 +7,10 @@ from random import randint
 
 def configer(domain):
     main_config = loads(open("./main.json", "rt").read())
-    outbound = loads(open("./outbound.json", "rt").read())
 
     # set sni
-    outbound["streamSettings"]["tlsSettings"]["allowInsecure"] = True
-    outbound["streamSettings"]["tlsSettings"]["serverName"] = domain
-
-    # add outbound in main config
-    main_config["outbounds"].append(outbound)
+    main_config["outbounds"][0]["streamSettings"]["tlsSettings"]["allowInsecure"] = True
+    main_config["outbounds"][0]["streamSettings"]["tlsSettings"]["serverName"] = domain
 
     open("./config.json", "wt").write(dumps(main_config))
 

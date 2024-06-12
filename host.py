@@ -8,22 +8,18 @@ from random import randint
 
 def configer(domain):
     main_config = loads(open("./main.json", "rt").read())
-    outbound = loads(open("./outbound.json", "rt").read())
 
     # set domain
     # types: tcp, ws, http-upgrade
-    match outbound["streamSettings"]["network"]:
+    match main_config["outbounds"][0]["streamSettings"]["network"]:
         case "tcp":
-            outbound["streamSettings"]["tcpSettings"]["header"]["request"]["headers"][
+            main_config["outbounds"][0]["streamSettings"]["tcpSettings"]["header"]["request"]["headers"][
                 "Host"
             ] = domain
         case "ws":
-            outbound["streamSettings"]["wsSettings"]["headers"]["Host"] = domain
+            main_config["outbounds"][0]["streamSettings"]["wsSettings"]["headers"]["Host"] = domain
         case "httpupgrade":
-            outbound["streamSettings"]["httpupgradeSettings"]["host"] = domain
-
-    # add outbound in main config
-    main_config["outbounds"].append(outbound)
+            main_config["outbounds"][0]["streamSettings"]["httpupgradeSettings"]["host"] = domain
 
     open("./config.json", "wt").write(dumps(main_config))
 
