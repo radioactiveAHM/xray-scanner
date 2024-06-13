@@ -73,7 +73,6 @@ async def main():
                 result.write(f"{domain},{int(latency/1000)},{jitter}\n")
                 print(f"{domain},{int(latency/1000)},{jitter}")
         except:  # noqa: E722
-            result.write(f"{domain},Timeout\n")
             print(f"{domain},Timeout\n")
 
         # kill the xray
