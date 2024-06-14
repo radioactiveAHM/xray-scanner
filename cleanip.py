@@ -4,7 +4,7 @@ from asyncio import create_subprocess_exec, sleep, run
 from json import loads, dumps
 from random import randint
 from os.path import isfile
-from httpx import Client, Timeout
+from httpx import AsyncClient, Timeout
 
 # Script config
 calc_jitter = True
@@ -12,13 +12,13 @@ count = 50
 get_timeout = 2.0
 connect_timeout = 5.0
 
-def jitter_f():
+async def jitter_f():
     latencies = []
     for _ in range(5):
         try:
-            client = Client(proxy='socks5://127.0.0.1:10808', timeout=Timeout(get_timeout, connect=connect_timeout))
-            resp = client.get(url="https://www.google.com/generate_204")
-            latencies.append(resp.elapsed.microseconds / 1000)
+            async with AsyncClient(proxy='socks5://127.0.0.1:10808', timeout=Timeout(get_timeout, connect=connect_timeout)) as client:
+                resp = await client.get("https://www.google.com/generate_204")
+                latencies.append(resp.elapsed.microseconds / 1000)
         except:  # noqa: E722
             return 0.0
 
@@ -66,17 +66,17 @@ async def main():
 
         try:
             # httpx client using proxy to xray socks
-            client = Client(proxy='socks5://127.0.0.1:10808', timeout=Timeout(get_timeout, connect=connect_timeout))
-            req = client.get(url="https://www.google.com/generate_204")
-            if req.status_code == 204 or req.status_code == 200:
-                jitter = ""
-                if calc_jitter:
-                    jitter = jitter_f()
-                    if jitter == 0.0:
-                        jitter = "JAMMED"
-                latency = req.elapsed.microseconds
-                result.write(f"{domain},{int(latency/1000)},{jitter}\n")
-                print(f"{domain},{int(latency/1000)},{jitter}")
+            async with AsyncClient(proxy='socks5://127.0.0.1:10808', timeout=Timeout(get_timeout, connect=connect_timeout)) as client:
+                req = await client.get(url="https://www.google.com/generate_204")
+                if req.status_code == 204 or req.status_code == 200:
+                    jitter = ""
+                    if calc_jitter:
+                        jitter = await jitter_f()
+                        if jitter == 0.0:
+                            jitter = "JAMMED"
+                    latency = req.elapsed.microseconds
+                    result.write(f"{domain},{int(latency/1000)},{jitter}\n")
+                    print(f"{domain},{int(latency/1000)},{jitter}")
         except:  # noqa: E722
             print(f"{domain},Timeout\n")
 
