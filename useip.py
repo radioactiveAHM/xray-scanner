@@ -2,13 +2,19 @@ from asyncio import create_subprocess_exec, sleep, run
 from json import loads, dumps
 from random import randint
 from os.path import isfile
-from httpx import Client
+from httpx import Client, Timeout
+
+# Script config
+calc_jitter = True
+count = 50
+get_timeout = 2.0
+connect_timeout = 5.0
 
 def jitter_f():
     latencies = []
     for _ in range(5):
         try:
-            client = Client(proxy='socks5://127.0.0.1:10808')
+            client = Client(proxy='socks5://127.0.0.1:10808', timeout=Timeout(get_timeout, connect=connect_timeout))
             resp = client.get(url="https://www.google.com/generate_204")
             latencies.append(resp.elapsed.microseconds / 1000)
         except:  # noqa: E722
@@ -37,9 +43,6 @@ def configer(ip):
 
 
 async def main():
-    calc_jitter = True
-    count = 50
-
     domains = open("./ipv4.txt", "rt").read().split("\n")
     
     if isfile("./result.csv"):
@@ -62,7 +65,7 @@ async def main():
         try:
             # httpx client using proxy to xray socks
             client = Client(proxy='socks5://127.0.0.1:10808')
-            req = client.get(url="https://www.google.com/generate_204")
+            req = client.get(url="https://www.google.com/generate_204", timeout=Timeout(get_timeout, connect=connect_timeout))
             if req.status_code == 204 or req.status_code == 200:
                 jitter = ""
                 if calc_jitter:
