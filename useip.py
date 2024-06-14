@@ -10,11 +10,11 @@ count = 50
 get_timeout = 2.0
 connect_timeout = 5.0
 
-async def jitter_f():
+async def jitter_f(port):
     latencies = []
     for _ in range(5):
         try:
-            async with AsyncClient(proxy='socks5://127.0.0.1:10808', timeout=Timeout(get_timeout, connect=connect_timeout)) as client:
+            async with AsyncClient(proxy=f'socks5://127.0.0.1:{port}', timeout=Timeout(get_timeout, connect=connect_timeout)) as client:
                 resp = await client.get("https://www.google.com/generate_204")
                 latencies.append(resp.elapsed.microseconds / 1000)
         except:  # noqa: E722
@@ -41,8 +41,16 @@ def configer(ip):
 
     open("./config.json", "wt").write(dumps(main_config))
 
+def findport()->int:
+    with open("./main.json", "rt") as config_file:
+        for inbound in loads(config_file.read())["inbounds"]:
+            if inbound["protocol"]=="socks":
+                return inbound["port"]
+    
+    raise "Socks inbound required!"
 
 async def main():
+    port = findport()
     domains = open("./ipv4.txt", "rt").read().split("\n")
     
     if isfile("./result.csv"):
@@ -64,12 +72,12 @@ async def main():
 
         try:
             # httpx client using proxy to xray socks
-            async with AsyncClient(proxy='socks5://127.0.0.1:10808', timeout=Timeout(get_timeout, connect=connect_timeout)) as client:
+            async with AsyncClient(proxy=f'socks5://127.0.0.1:{port}', timeout=Timeout(get_timeout, connect=connect_timeout)) as client:
                 req = await client.get(url="https://www.google.com/generate_204")
                 if req.status_code == 204 or req.status_code == 200:
                     jitter = ""
                     if calc_jitter:
-                        jitter = await jitter_f()
+                        jitter = await jitter_f(port)
                         if jitter == 0.0:
                             jitter = "JAMMED"
                     latency = req.elapsed.microseconds
