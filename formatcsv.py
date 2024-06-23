@@ -14,7 +14,7 @@ formatted = "____________________________________\n|IP                 Delay    
 for row in rows:
     ip = row[0]+((18-len(row[0]))*" ")
     latency = row[1]+((8-len(row[1]))*" ")
-    jitter = row[2]+"    "
+    jitter = row[2]+((6-len(row[2]))*" ")
     formatted += f"|{ip} {latency} {jitter}|\n"
 formatted += "____________________________________"
 
