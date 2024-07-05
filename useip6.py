@@ -3,22 +3,26 @@ from json import loads, dumps
 from random import randint
 from os.path import isfile
 from httpx import AsyncClient, Timeout
+from time import perf_counter
 
 # Script config
 calc_jitter = True
-count = 300
-get_timeout = 0.7
-connect_timeout = 0.7
+scan = 50
+get_timeout = 1.0
+connect_timeout = 1.0
 
-async def jitter_f(port):
+async def jitter_f(client):
     latencies = []
-    for _ in range(5):
-        try:
-            async with AsyncClient(proxy=f'socks5://127.0.0.1:{port}', timeout=Timeout(get_timeout, connect=connect_timeout)) as client:
-                resp = await client.get("http://cp.cloudflare.com/")
-                latencies.append(resp.elapsed.microseconds / 1000)
-        except:  # noqa: E722
-            return 0.0
+    try:
+        for _ in range(5):
+            stime = perf_counter()
+            resp = await client.get("http://cp.cloudflare.com/")
+            etime = perf_counter()
+            if resp.status_code == 204 or resp.status_code == 200:
+                latencies.append(int((etime - stime)*1000))
+    except:  # noqa: E722
+        return 0.0
+    print("jitter latencies= ",latencies)
 
     # all request success
     sum = 0.0
@@ -35,7 +39,7 @@ async def jitter_f(port):
 def configer(ip):
     main_config = loads(open("./main.json", "rt").read())
 
-    # set domain
+    # set ip
     for vnex in main_config["outbounds"][0]["settings"]["vnext"]:
         vnex["address"] = ip
 
@@ -51,7 +55,7 @@ def findport()->int:
 
 async def main():
     port = findport()
-    domains = open("./ipv6.txt", "rt").read().split("\n")
+    ips = open("./ipv6.txt", "rt").read().split("\n")
     
     if isfile("./result.csv"):
         result = open("./result.csv", "at")
@@ -59,7 +63,7 @@ async def main():
         result = open("./result.csv", "at")
         result.write("IP,Delay,Jitter\r")
 
-    for _ in range(count):
+    for _ in range(scan):
         # generate config file
         try:
             variant = ["","1","2","3","4","5","6","7","8","9","a","b","c","d","f"]
@@ -67,10 +71,10 @@ async def main():
             n2 = variant[randint(0,len(variant))]
             n3 = variant[randint(0,len(variant))]
             n4 = variant[randint(0,len(variant))]
-            ip = domains[randint(0, len(domains))].strip()+n1+n2+n3+n4
-        except: # noqa: E722
+            ip = ips[randint(0, len(ips))].strip()+n1+n2+n3+n4
+            configer(ip)
+        except:  # noqa: E722
             continue
-        configer(ip)
 
         # run xray with config
         xray = await create_subprocess_exec("./xray.exe")
@@ -78,16 +82,18 @@ async def main():
         try:
             # httpx client using proxy to xray socks
             async with AsyncClient(proxy=f'socks5://127.0.0.1:{port}', timeout=Timeout(get_timeout, connect=connect_timeout)) as client:
+                stime = perf_counter()
                 req = await client.get(url="http://cp.cloudflare.com/")
+                etime = perf_counter()
                 if req.status_code == 204 or req.status_code == 200:
                     jitter = ""
                     if calc_jitter:
-                        jitter = await jitter_f(port)
+                        jitter = await jitter_f(client)
                         if jitter == 0.0:
                             jitter = "JAMMED"
-                    latency = req.elapsed.microseconds
-                    result.write(f"{ip},{int(latency/1000)},{jitter}\n")
-                    print(f"{ip},{int(latency/1000)},{jitter}")
+                    latency = etime - stime
+                    result.write(f"{ip},{int(latency*1000)},{jitter}\n")
+                    print(f"{ip},{int(latency*1000)},{jitter}")
         except:  # noqa: E722
             print(f"{ip},Timeout\n")
 
@@ -95,7 +101,7 @@ async def main():
         xray.terminate()
         xray.kill()
 
-        await sleep(1.0)
+        await sleep(0.1)
 
 
 run(main())

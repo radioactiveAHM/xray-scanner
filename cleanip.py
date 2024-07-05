@@ -1,26 +1,27 @@
-# run -c config
-
-from asyncio import create_subprocess_exec, sleep, run
+from asyncio import create_subprocess_exec, run, sleep
 from json import loads, dumps
-from random import randint
+from random import shuffle
 from os.path import isfile
 from httpx import AsyncClient, Timeout
+from time import perf_counter
 
 # Script config
 calc_jitter = True
-count = 50
-get_timeout = 2.0
-connect_timeout = 5.0
+get_timeout = 1.0
+connect_timeout = 1.0
 
-async def jitter_f(port):
+async def jitter_f(client):
     latencies = []
-    for _ in range(5):
-        try:
-            async with AsyncClient(proxy=f'socks5://127.0.0.1:{port}', timeout=Timeout(get_timeout, connect=connect_timeout)) as client:
-                resp = await client.get("https://www.google.com/generate_204")
-                latencies.append(resp.elapsed.microseconds / 1000)
-        except:  # noqa: E722
-            return 0.0
+    try:
+        for _ in range(5):
+            stime = perf_counter()
+            resp = await client.get("http://cp.cloudflare.com/")
+            etime = perf_counter()
+            if resp.status_code == 204 or resp.status_code == 200:
+                latencies.append(int((etime - stime)*1000))
+    except:  # noqa: E722
+        return 0.0
+    print("jitter latencies= ",latencies)
 
     # all request success
     sum = 0.0
@@ -54,20 +55,20 @@ def findport()->int:
 async def main():
     port = findport()
     domains = open("./domains.txt", "rt").read().split("\n")
-
+    shuffle(domains)
+    
     if isfile("./result.csv"):
         result = open("./result.csv", "at")
     else:
         result = open("./result.csv", "at")
         result.write("Domain,Delay,Jitter\r")
 
-    for _ in range(count):
+    for domain in domains:
         # generate config file
         try:
-            domain = domains[randint(0, len(domains))].strip()
+            configer(domain.strip())
         except: # noqa: E722
             continue
-        configer(domain)
 
         # run xray with config
         xray = await create_subprocess_exec("./xray.exe")
@@ -75,16 +76,18 @@ async def main():
         try:
             # httpx client using proxy to xray socks
             async with AsyncClient(proxy=f'socks5://127.0.0.1:{port}', timeout=Timeout(get_timeout, connect=connect_timeout)) as client:
-                req = await client.get(url="https://www.google.com/generate_204")
+                stime = perf_counter()
+                req = await client.get(url="http://cp.cloudflare.com/")
+                etime = perf_counter()
                 if req.status_code == 204 or req.status_code == 200:
                     jitter = ""
                     if calc_jitter:
-                        jitter = await jitter_f(port)
+                        jitter = await jitter_f(client)
                         if jitter == 0.0:
                             jitter = "JAMMED"
-                    latency = req.elapsed.microseconds
-                    result.write(f"{domain},{int(latency/1000)},{jitter}\n")
-                    print(f"{domain},{int(latency/1000)},{jitter}")
+                    latency = etime - stime
+                    result.write(f"{domain},{int(latency*1000)},{jitter}\n")
+                    print(f"{domain},{int(latency*1000)},{jitter}")
         except:  # noqa: E722
             print(f"{domain},Timeout\n")
 
@@ -92,7 +95,7 @@ async def main():
         xray.terminate()
         xray.kill()
 
-        await sleep(1.0)
+        await sleep(0.1)
 
 
 run(main())
