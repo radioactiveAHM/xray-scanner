@@ -4,6 +4,7 @@ from random import randint
 from os.path import isfile
 from httpx import AsyncClient, Timeout
 from time import perf_counter
+from os import system
 
 # Script config
 calc_jitter = True
@@ -63,7 +64,11 @@ async def main():
         result = open("./result.csv", "at")
         result.write("IP,Delay,Jitter\r")
 
+    found = 0
+    timeout = 0
     for _ in range(scan):
+        system("cls")
+        print(f"Found= {found}\tTimeout= {timeout}\n\n")
         # generate config file
         try:
             ip = ips[randint(0,len(ips))].strip().replace("0/24", str(randint(0,255)))
@@ -89,7 +94,9 @@ async def main():
                     latency = etime - stime
                     result.write(f"{ip},{int(latency*1000)},{jitter}\n")
                     print(f"{ip},{int(latency*1000)},{jitter}")
+                    found += 1
         except:  # noqa: E722
+            timeout += 1
             print(f"{ip},Timeout\n")
 
         # kill the xray

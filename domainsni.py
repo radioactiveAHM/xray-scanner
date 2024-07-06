@@ -4,6 +4,7 @@ from random import shuffle
 from os.path import isfile
 from httpx import AsyncClient, Timeout
 from time import perf_counter
+from os import system
 
 # Script config
 calc_jitter = True
@@ -64,7 +65,11 @@ async def main():
         result = open("./result.csv", "at")
         result.write("Domain,Delay,Jitter\r")
 
+    found = 0
+    timeout = 0
     for domain in domains:
+        system("cls")
+        print(f"Found= {found}\tTimeout= {timeout}\n\n")
         # generate config file
         try:
             configer(domain.strip())
@@ -89,7 +94,9 @@ async def main():
                     latency = etime - stime
                     result.write(f"{domain},{int(latency*1000)},{jitter}\n")
                     print(f"{domain},{int(latency*1000)},{jitter}")
+                    found += 1
         except:  # noqa: E722
+            timeout += 1
             print(f"{domain},Timeout\n")
 
         # kill the xray
