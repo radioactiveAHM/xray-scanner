@@ -5,6 +5,7 @@ from os.path import isfile
 from httpx import AsyncClient, Timeout
 from time import perf_counter
 from os import devnull
+import aiofiles
 
 # Script config
 calc_jitter = True
@@ -35,15 +36,16 @@ async def jitter_f(client):
 
     return int(zigma / len(latencies))
 
-
-def configer(domain):
-    main_config = loads(open("./main.json", "rt").read())
+async def configer(domain):
+    async with aiofiles.open("./main.json", "rt") as main_config_file:
+        main_config = loads(await main_config_file.read())
 
     # set domain
     for vnex in main_config["outbounds"][0]["settings"]["vnext"]:
         vnex["address"] = domain
 
-    open("./config.json", "wt").write(dumps(main_config))
+    async with aiofiles.open("./config.json", "wt") as config_file:
+        await config_file.write(dumps(main_config))
 
 def findport()->int:
     with open("./main.json", "rt") as config_file:
@@ -55,52 +57,55 @@ def findport()->int:
 
 async def main():
     port = findport()
-    domains = open("./domains.txt", "rt").read().split("\n")
+    async with aiofiles.open("./domains.txt", "rt") as domains_file:
+        domains = await domains_file.read()
+    domains = domains.split("\n")
     shuffle(domains)
     
-    if isfile("./result.csv"):
-        result = open("./result.csv", "at")
-    else:
-        result = open("./result.csv", "at")
-        result.write("Domain,Delay,Jitter\r")
+    try:
+        async with aiofiles.open("./result.csv", "a+") as result_file:
+            if await result_file.tell() == 0:
+                await result_file.write("Domain,Delay,Jitter\r")
 
-    for domain in domains:
-        # generate config file
-        try:
-            configer(domain.strip())
-        except: # noqa: E722
-            continue
-
-        # run xray with config
-        xray = await create_subprocess_exec(
-            "./xray.exe",
-            stdout=open(devnull, 'wb'),
-            stderr=open(devnull, 'wb')
-        )
-
-        try:
-            # httpx client using proxy to xray socks
-            async with AsyncClient(proxy=f'socks5://127.0.0.1:{port}', timeout=Timeout(get_timeout, connect=connect_timeout)) as client:
-                stime = perf_counter()
-                req = await client.get(url="http://cp.cloudflare.com/")
-                etime = perf_counter()
-                if req.status_code == 204 or req.status_code == 200:
-                    jitter = ""
-                    if calc_jitter:
-                        jitter = await jitter_f(client)
-                        if jitter == 0.0:
-                            jitter = "JAMMED"
-                    latency = etime - stime
-                    result.write(f"{domain},{int(latency*1000)},{jitter}\n")
-                    print(f"{domain},{int(latency*1000)},{jitter}")
-        except:  # noqa: E722
-            print(f"{domain},Timeout\n")
-
-        # kill the xray
-        xray.terminate()
-        xray.kill()
-
-        await sleep(0.1)
-
+        for domain in domains:
+            # generate config file
+            try:
+                await configer(domain.strip())
+            except: # noqa: E722
+                continue
+    
+            # run xray with config
+            xray = await create_subprocess_exec(
+                "./xray.exe",
+                stdout=open(devnull, 'wb'),
+                stderr=open(devnull, 'wb')
+            )
+    
+            try:
+                # httpx client using proxy to xray socks
+                async with AsyncClient(proxy=f'socks5://127.0.0.1:{port}', timeout=Timeout(get_timeout, connect=connect_timeout)) as client:
+                    stime = perf_counter()
+                    req = await client.get(url="http://cp.cloudflare.com/")
+                    etime = perf_counter()
+                    if req.status_code == 204 or req.status_code == 200:
+                        jitter = ""
+                        if calc_jitter:
+                            jitter = await jitter_f(client)
+                            if jitter == 0.0:
+                                jitter = "JAMMED"
+                        latency = etime - stime
+                        async with aiofiles.open("./result.csv", "a") as result_file:
+                            await result_file.write(f"{domain},{int(latency*1000)},{jitter}\n")
+                        print(f"{domain},{int(latency*1000)},{jitter}")
+            except:  # noqa: E722
+                print(f"{domain},Timeout")
+    
+            # kill the xray
+            xray.terminate()
+            xray.kill()
+    
+            await sleep(0.1)
+    except KeyboardInterrupt:
+        print("\nScript interrupted! Saving progress...")
 
 run(main())
