@@ -1,7 +1,6 @@
 from asyncio import create_subprocess_exec, run, sleep
 from json import loads, dumps
 from random import shuffle
-from os.path import isfile
 from httpx import AsyncClient, Timeout
 from time import perf_counter
 from os import devnull
