@@ -96,9 +96,9 @@ async def main():
                         latency = etime - stime
                         async with aiofiles.open("./result.csv", "a") as result_file:
                             await result_file.write(f"{domain},{int(latency*1000)},{jitter}\n")
-                        print(f"{domain},{int(latency*1000)},{jitter}")
+                        print(f"{domain} Latency:{int(latency*1000)} Jitter:{jitter}")
             except:  # noqa: E722
-                print(f"{domain},Timeout")
+                print(f"{domain} Timeout")
     
             # kill the xray
             xray.terminate()
