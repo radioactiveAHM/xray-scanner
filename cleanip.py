@@ -71,7 +71,11 @@ async def main():
             continue
 
         # run xray with config
-        xray = await create_subprocess_exec("./xray.exe")
+        xray = await create_subprocess_exec(
+            "./xray.exe",
+            stdout=open(devnull, 'wb'),
+            stderr=open(devnull, 'wb')
+        )
 
         try:
             # httpx client using proxy to xray socks
