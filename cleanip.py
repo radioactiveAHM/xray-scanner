@@ -3,13 +3,17 @@ from json import loads, dumps
 from random import shuffle
 from httpx import AsyncClient, Timeout
 from time import perf_counter
-from os import devnull
+from os import devnull, makedirs
 import aiofiles
+from datetime import datetime
 
 # Script config
 calc_jitter = True
 get_timeout = 1.0
 connect_timeout = 1.0
+#Result file naming
+current_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+result_filename = f"./results/result_{current_datetime}.csv"
 
 async def jitter_f(client):
     latencies = []
@@ -62,7 +66,7 @@ async def main():
     shuffle(domains)
     
     try:
-        async with aiofiles.open("./result.csv", "a+") as result_file:
+        async with aiofiles.open(result_filename, "a+") as result_file:
             if await result_file.tell() == 0:
                 await result_file.write("Domain,Delay,Jitter\r")
 
