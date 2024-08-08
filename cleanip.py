@@ -23,7 +23,7 @@ async def jitter_f(client):
                 latencies.append(int((etime - stime)*1000))
     except:  # noqa: E722
         return 0.0
-    print("jitter latencies= ",latencies)
+    fLatency=latencies
 
     # all request success
     sum = 0.0
@@ -34,7 +34,7 @@ async def jitter_f(client):
     for latency in latencies:
         zigma += abs(latency - average)
 
-    return int(zigma / len(latencies))
+    return int(zigma / len(latencies)),fLatency
 
 async def configer(domain):
     async with aiofiles.open("./main.json", "rt") as main_config_file:
@@ -90,13 +90,14 @@ async def main():
                     if req.status_code == 204 or req.status_code == 200:
                         jitter = ""
                         if calc_jitter:
-                            jitter = await jitter_f(client)
+                            jitter, fLatency = await jitter_f(client)
                             if jitter == 0.0:
                                 jitter = "JAMMED"
                         latency = etime - stime
                         async with aiofiles.open("./result.csv", "a") as result_file:
                             await result_file.write(f"{domain},{int(latency*1000)},{jitter}\n")
                         print(f"{domain} Latency:{int(latency*1000)} Jitter:{jitter}")
+                        print("jitter latencies= ",fLatency)
             except:  # noqa: E722
                 print(f"{domain} Timeout")
     
