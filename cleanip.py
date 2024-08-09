@@ -9,11 +9,15 @@ from datetime import datetime
 
 # Script config
 calc_jitter = True
+shuffle_up = True
 get_timeout = 1.0
 connect_timeout = 1.0
+
 #Result file naming
 current_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 result_filename = f"./results/result_{current_datetime}.csv"
+# Ensure the results directory exists
+makedirs("./results", exist_ok=True)
 
 async def jitter_f(client):
     latencies = []
@@ -63,7 +67,9 @@ async def main():
     async with aiofiles.open("./domains.txt", "rt") as domains_file:
         domains = await domains_file.read()
     domains = domains.split("\n")
-    shuffle(domains)
+        
+    if shuffle_up:
+        shuffle(domains)
     
     try:
         async with aiofiles.open(result_filename, "a+") as result_file:
@@ -97,7 +103,7 @@ async def main():
                             if jitter == 0.0:
                                 jitter = "JAMMED"
                         latency = etime - stime
-                        async with aiofiles.open("./result.csv", "a") as result_file:
+                        async with aiofiles.open(result_filename, "a") as result_file:
                             await result_file.write(f"{domain},{int(latency*1000)},{jitter}\n")
                         print(f"{domain} Latency:{int(latency*1000)} Jitter:{jitter}")
                         print("jitter latencies= ",fLatency)
