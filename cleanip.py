@@ -110,9 +110,15 @@ async def main():
             except:  # noqa: E722
                 print(f"{domain} Timeout")
     
-            # kill the xray
-            xray.terminate()
-            xray.kill()
+            if xray.returncode is None:  # Check if process is still running
+                try:
+                    xray.terminate()
+                    await xray.wait()
+                except ProcessLookupError:
+                    print(f"Process already terminated or port is busy.")
+                except Exception as e:
+                    print(f"Failed to terminate process {e}")
+                    xray.kill()  # Kill process if termination fail
     
             await sleep(0.1)
     except KeyboardInterrupt:
