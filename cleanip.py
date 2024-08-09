@@ -24,7 +24,7 @@ async def jitter_f(client):
     try:
         for _ in range(5):
             stime = perf_counter()
-            resp = await client.get("http://cp.cloudflare.com/")
+            resp = await client.get("https://www.gstatic.com/generate_204")
             etime = perf_counter()
             if resp.status_code == 204 or resp.status_code == 200:
                 latencies.append(int((etime - stime)*1000))
@@ -94,7 +94,7 @@ async def main():
                 # httpx client using proxy to xray socks
                 async with AsyncClient(proxy=f'socks5://127.0.0.1:{port}', timeout=Timeout(get_timeout, connect=connect_timeout)) as client:
                     stime = perf_counter()
-                    req = await client.get(url="http://cp.cloudflare.com/")
+                    req = await client.get(url="https://www.gstatic.com/generate_204")
                     etime = perf_counter()
                     if req.status_code == 204 or req.status_code == 200:
                         jitter = ""
