@@ -8,6 +8,7 @@ import aiofiles
 from datetime import datetime
 
 # Script config
+list_file="./domains.txt"
 calc_jitter = True
 shuffle_up = True
 get_timeout = 1.0
@@ -64,7 +65,7 @@ def findport()->int:
 
 async def main():
     port = findport()
-    async with aiofiles.open("./domains.txt", "rt") as domains_file:
+    async with aiofiles.open(list_file, "rt") as domains_file:
         domains = await domains_file.read()
     domains = domains.split("\n")
         
