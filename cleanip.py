@@ -17,7 +17,7 @@ connect_timeout = 1.0
 current_datetime = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
 result_filename = f"./results/result_{current_datetime}.csv"
 # Ensure the results directory exists
-makedirs(results_dir, exist_ok=True)
+makedirs("./results", exist_ok=True)
 
 async def jitter_f(client):
     latencies = []
