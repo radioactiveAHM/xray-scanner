@@ -6,6 +6,7 @@ from time import perf_counter
 from os import devnull, makedirs
 import aiofiles
 from datetime import datetime
+import socketserver
 
 # Script config
 list_file="./domains.txt"
@@ -44,27 +45,25 @@ async def jitter_f(client):
 
     return int(zigma / len(latencies)),fLatency
 
-async def configer(domain):
+async def configer(domain, port):
     async with aiofiles.open("./main.json", "rt") as main_config_file:
         main_config = loads(await main_config_file.read())
 
     # set domain
     for vnex in main_config["outbounds"][0]["settings"]["vnext"]:
         vnex["address"] = domain
+    main_config["inbounds"][0]["port"] = port # Add the free port to the config
 
     async with aiofiles.open("./config.json", "wt") as config_file:
         await config_file.write(dumps(main_config))
 
-def findport()->int:
-    with open("./main.json", "rt") as config_file:
-        for inbound in loads(config_file.read())["inbounds"]:
-            if inbound["protocol"]=="socks":
-                return inbound["port"]
-    
-    raise "Socks inbound required!"
+def get_free_port() -> int:
+    """returns a free port"""
+    with socketserver.TCPServer(("localhost", 0), None) as s:
+        return s.server_address[1]
 
 async def main():
-    port = findport()
+    port = get_free_port()
     async with aiofiles.open(list_file, "rt") as domains_file:
         domains = await domains_file.read()
     domains = domains.split("\n")
@@ -80,7 +79,7 @@ async def main():
         for domain in domains:
             # generate config file
             try:
-                await configer(domain.strip())
+                await configer(domain.strip(),port)
             except: # noqa: E722
                 continue
     
