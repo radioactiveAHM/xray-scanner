@@ -52,7 +52,8 @@ async def configer(domain, port):
     # set domain
     for vnex in main_config["outbounds"][0]["settings"]["vnext"]:
         vnex["address"] = domain
-    main_config["inbounds"][0]["port"] = port # Add the free port to the config
+    main_config["inbounds"][0]["port"] = port # Add free port to socks protocol
+    main_config["inbounds"][1]["port"] = port + 1 # Add different port to http protocol
 
     async with aiofiles.open("./config.json", "wt") as config_file:
         await config_file.write(dumps(main_config))
