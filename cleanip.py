@@ -121,7 +121,6 @@ async def main():
                     print(f"Failed to terminate process {e}")
                     xray.kill()  # Kill process if termination fail
     
-            await sleep(0.1)
     except KeyboardInterrupt:
         print("\nScript interrupted! Saving progress...")
 
